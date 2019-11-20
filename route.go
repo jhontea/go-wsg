@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -10,13 +11,14 @@ import (
 func route() {
 	myRouter := mux.NewRouter().StrictSlash(true)
 
-	myRouter.HandleFunc("/health", healthCheckHandler)
+	myRouter.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
+		var req map[string]interface{}
+		decoder := json.NewDecoder(r.Body)
+		decoder.Decode(&req)
+		defer r.Body.Close()
 
-	myRouter.HandleFunc("/messages", getMessages)
-	myRouter.HandleFunc("/message", createMessage).Methods("POST")
-
-	myRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "index.html")
+		result := executeQuery(req["query"].(string), schema)
+		json.NewEncoder(w).Encode(result)
 	})
 	myRouter.HandleFunc("/subscriber", subscriber)
 
